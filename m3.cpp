@@ -20,50 +20,11 @@ double polygonArea(vector <double> &X, vector <double> &Y, int n)
     return abs(area / 2.0);
 }
 
-int main(){
-
-    fstream newFile, tempFile , outFile, resFile;
-    string filename = "Milestone_Input/Milestone 3/Source.txt";
-    string resFileName = "Milestone_Input/Milestone 3/POI.txt";
-    newFile.open(filename.c_str());
-    tempFile.open(filename);
-    resFile.open(resFileName);
-
-    string header, footer, polygons;
-    bool head = false , foot = false , poly = false, first = true, f=true, s=false;
-    vector <vector<pair<int,int>>> points;
-    vector <pair<int,int>> tp_points;
+vector <vector<pair<int,int>>> getPoints(vector <vector<pair<int,int>>> actual_pts, vector <pair<int,int>> tp_points, bool first, bool f, bool s, bool poly, fstream &file){
     int fnum , snum;
-
-    if(tempFile.is_open()){
-        string temp , temp_header;
-        while(getline(tempFile, temp)){ 
-           
-            if(temp[0] == 'h' || head == true){
-                temp_header += temp + "\n";
-                head = true;
-            }
-
-            if(temp[0] == 's' && temp[temp.size()-1] == 'p'){
-                temp_header += temp + "\n";
-                head = false;
-            }
-
-            if((temp[0] == 'e' && temp[temp.size()-1] == 'r') || foot == true){
-                footer += temp + "\n";
-                foot = true;
-            }
-        }
-
-        for(int i=0 ; i<temp_header.size()-12 ; i++)
-            header += temp_header[i];
-
-        tempFile.close();
-    }
-
-    if(newFile.is_open()){
+    if(file.is_open()){
         string temp;
-        while(newFile >> temp) { //take word and print
+        while(file >> temp) { //take word and print
 
             if(temp == "xy" || poly == true){
                 if(isNumber(temp)){
@@ -95,61 +56,70 @@ int main(){
             if(temp == "endel"){
                 poly = false;
                 first = true;
-                points.push_back(tp_points);
+                actual_pts.push_back(tp_points);
                 tp_points.clear();
             }
 
         }
 
-        newFile.close();
+        file.close();
     }
+    return actual_pts;
+}
+
+int main(){
+
+    fstream newFile, tempFile , outFile, resFile;
+    string filename = "Milestone_Input/Milestone 3/Source.txt";
+    string resFileName = "Milestone_Input/Milestone 3/POI.txt";
+    newFile.open(filename.c_str());
+    tempFile.open(filename);
+    resFile.open(resFileName);
+
+    string header, footer, polygons;
+    bool head = false , foot = false , poly = false, first = true, f=true, s=false;
+    
+    // Get the points from all the polygons.
+    
+    vector <vector<pair<int,int>>> points;
+    vector <pair<int,int>> tp_points;
+    points = getPoints(points,tp_points,first,f,s,poly,newFile);
+
+    // Get the header and footer.
+
+    if(tempFile.is_open()){
+        string temp , temp_header;
+        while(getline(tempFile, temp)){ 
+           
+            if(temp[0] == 'h' || head == true){
+                temp_header += temp + "\n";
+                head = true;
+            }
+
+            if(temp[0] == 's' && temp[temp.size()-1] == 'p'){
+                temp_header += temp + "\n";
+                head = false;
+            }
+
+            if((temp[0] == 'e' && temp[temp.size()-1] == 'r') || foot == true){
+                footer += temp + "\n";
+                foot = true;
+            }
+        }
+
+        for(int i=0 ; i<temp_header.size()-12 ; i++)
+            header += temp_header[i];
+
+        tempFile.close();
+    }
+     
 
     vector <vector<pair<int,int>>> res_points;
     vector <pair<int,int>> res_tp_points;
     first = true; f=true; s=false; poly = false;
+    res_points = getPoints(res_points,res_tp_points,first,f,s,poly,resFile);
 
-    if(resFile.is_open()){
-        string temp;
-        while(resFile >> temp) { //take word and print
-
-            if(temp == "xy" || poly == true){
-                if(isNumber(temp)){
-                    if(first){
-                        first = false;
-                        continue;
-                    }
-                    else{
-                        if(f){
-                            fnum = stoi(temp);
-                            f = false;
-                            s = true;
-                        }
-                        else{
-                            snum = stoi(temp);
-                            s = false;
-                            f = true;
-                        }
-
-                        if(f && !s){
-                            res_tp_points.push_back({fnum,snum});
-                        }
-
-                    }
-                }
-                poly = true;
-            }
-
-            if(temp == "endel"){
-                poly = false;
-                first = true;
-                res_points.push_back(res_tp_points);
-                res_tp_points.clear();
-            }
-
-        }
-
-        resFile.close();
-    }
+    // Get the actual area of POI.
 
     double actual_res;
     for(int i=0 ; i<res_points.size() ; i++){
@@ -161,6 +131,8 @@ int main(){
         actual_res = polygonArea(X,Y,res_points[i].size());
     }
 
+    // Get the matches.
+    
     int match_count = 0;
     vector <bool> matches;
     for(int i=0 ; i<points.size() ; i++){
@@ -178,9 +150,7 @@ int main(){
             matches.push_back(false);
     }
 
-    // cout<<match_count<<endl;
-
-    
+    // Output to the result file.
 
     outFile.open("MileStone_Output/m3out.txt");
     if(outFile.is_open()){
@@ -200,7 +170,6 @@ int main(){
                 outFile<<"\nendel\n";
             }
         }
-
         outFile<<footer;
         outFile.close();
     }
